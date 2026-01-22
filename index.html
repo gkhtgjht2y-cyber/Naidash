@@ -17,8 +17,25 @@
             <div class="loading">Loading economic data...</div>
         </div>
 
+        <!-- Historical Chart Section -->
         <div class="section">
-            <h2>📊 Economic Outlook</h2>
+            <h2>📊 Historical Trends - <span id="selectedMetric">GDP</span></h2>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+            <p class="chart-note">Click on any metric card above to view its historical trend</p>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="section">
+            <h2>📈 Multi-Indicator Comparison (Last 10 Years)</h2>
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Economic Outlook</h2>
             <div id="outlook" class="outlook">
                 <div class="loading">Analyzing economic indicators...</div>
             </div>
@@ -30,8 +47,14 @@
                 <div class="loading">Fetching latest news...</div>
             </div>
         </div>
+
+        <div class="data-source">
+            <p>Data Source: World Bank Open Data API | Charts powered by Chart.js</p>
+            <p>Updates automatically every 5 minutes</p>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
