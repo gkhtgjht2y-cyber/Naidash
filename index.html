@@ -1,6 +1,37 @@
-git init
-git add index.html
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/yourusername/nigeria-dashboard.git
-git push -u origin main
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nigeria Economic Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇳🇬 Nigeria Economic Dashboard</h1>
+            <p class="update-time">Last Updated: <span id="lastUpdate">Loading...</span></p>
+        </header>
+
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="loading">Loading economic data...</div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Economic Outlook</h2>
+            <div id="outlook" class="outlook">
+                <div class="loading">Analyzing economic indicators...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📰 Latest Economic News</h2>
+            <div class="news-grid" id="newsGrid">
+                <div class="loading">Fetching latest news...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
