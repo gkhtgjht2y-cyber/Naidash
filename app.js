@@ -10,7 +10,7 @@ const API_CONFIG = {
     // 100 requests per day on free tier
     gnews: {
         enabled: false, // Set to true after adding your key
-        apiKey: 'YOUR_GNEWS_API_KEY_HERE',
+        apiKey: '884f26d3b2e37640fad650eeaea12834',
         url: 'https://gnews.io/api/v4/search'
     },
     
@@ -18,14 +18,14 @@ const API_CONFIG = {
     // 100 requests per day on free tier
     newsapi: {
         enabled: false, // Set to true after adding your key
-        apiKey: 'YOUR_NEWSAPI_KEY_HERE',
+        apiKey: '4d203a0393b34ab8926187d29628468c',
         url: 'https://newsapi.org/v2/everything'
     },
     
     // MediaStack API - Alternative news source: https://mediastack.com/
     mediastack: {
         enabled: false,
-        apiKey: 'YOUR_MEDIASTACK_KEY_HERE',
+        apiKey: 'pub_a197e7eaf05f4f1ba8dedee42a9745c6',
         url: 'http://api.mediastack.com/v1/news'
     }
 };
