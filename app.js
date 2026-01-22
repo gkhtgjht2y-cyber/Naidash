@@ -1,158 +1,362 @@
-// API Configuration
-const API_ENDPOINTS = {
+// =============================================================================
+// API CONFIGURATION - ADD YOUR API KEYS HERE
+// =============================================================================
+
+const API_CONFIG = {
+    // World Bank API (No key needed - always works)
     worldBank: 'https://api.worldbank.org/v2/country/NGA/indicator/',
-    // Add your API keys below when you get them
-    gnews: 'https://gnews.io/api/v4/search?q=Nigeria+economy&lang=en&country=ng&max=10&apikey=884f26d3b2e37640fad650eeaea12834',
-    newsapi: 'https://newsapi.org/v2/everything?q=Nigeria+economy&sortBy=publishedAt&language=en&pageSize=10&apiKey=4d203a0393b34ab8926187d29628468c'
+    
+    // GNews API - Get free key at: https://gnews.io/register
+    // 100 requests per day on free tier
+    gnews: {
+        enabled: false, // Set to true after adding your key
+        apiKey: 'YOUR_GNEWS_API_KEY_HERE',
+        url: 'https://gnews.io/api/v4/search'
+    },
+    
+    // NewsAPI - Get free key at: https://newsapi.org/register
+    // 100 requests per day on free tier
+    newsapi: {
+        enabled: false, // Set to true after adding your key
+        apiKey: 'YOUR_NEWSAPI_KEY_HERE',
+        url: 'https://newsapi.org/v2/everything'
+    },
+    
+    // MediaStack API - Alternative news source: https://mediastack.com/
+    mediastack: {
+        enabled: false,
+        apiKey: 'YOUR_MEDIASTACK_KEY_HERE',
+        url: 'http://api.mediastack.com/v1/news'
+    }
 };
 
-// World Bank Economic Indicators
+// =============================================================================
+// ECONOMIC INDICATORS CONFIGURATION
+// =============================================================================
+
 const INDICATORS = {
-    'NY.GDP.MKTP.CD': 'GDP (Current US$)',
-    'FP.CPI.TOTL.ZG': 'Inflation Rate',
-    'SL.UEM.TOTL.ZS': 'Unemployment Rate',
-    'NY.GDP.PCAP.CD': 'GDP per Capita',
-    'BN.CAB.XOKA.GD.ZS': 'Current Account Balance',
-    'GC.DOD.TOTL.GD.ZS': 'Government Debt (% of GDP)'
+    'NY.GDP.MKTP.CD': { 
+        name: 'GDP', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+        color: '#00D9FF',
+        gradient: 'gradient-cyan',
+        unit: 'billions',
+        format: (val) => '$' + (val / 1e9).toFixed(2) + 'B'
+    },
+    'FP.CPI.TOTL.ZG': { 
+        name: 'Inflation Rate', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+        color: '#FF6B6B',
+        gradient: 'gradient-red',
+        unit: 'percent',
+        format: (val) => val.toFixed(2) + '%'
+    },
+    'SL.UEM.TOTL.ZS': { 
+        name: 'Unemployment', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+        color: '#FFB800',
+        gradient: 'gradient-orange',
+        unit: 'percent',
+        format: (val) => val.toFixed(2) + '%'
+    },
+    'NY.GDP.PCAP.CD': { 
+        name: 'GDP per Capita', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+        color: '#4ECB71',
+        gradient: 'gradient-green',
+        unit: 'dollars',
+        format: (val) => '$' + val.toLocaleString(undefined, {maximumFractionDigits: 0})
+    },
+    'NE.EXP.GNFS.ZS': { 
+        name: 'Exports (% GDP)', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+        color: '#A78BFA',
+        gradient: 'gradient-purple',
+        unit: 'percent',
+        format: (val) => val.toFixed(2) + '%'
+    },
+    'NE.IMP.GNFS.ZS': { 
+        name: 'Imports (% GDP)', 
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>`,
+        color: '#F472B6',
+        gradient: 'gradient-pink',
+        unit: 'percent',
+        format: (val) => val.toFixed(2) + '%'
+    }
 };
 
-/**
- * Fetch data from World Bank API for a specific indicator
- */
-async function fetchWorldBankData(indicator) {
+// =============================================================================
+// GLOBAL VARIABLES
+// =============================================================================
+
+let chartDataStore = {};
+let mainChart = null;
+let comparisonChart = null;
+let selectedIndicator = 'NY.GDP.MKTP.CD';
+
+// =============================================================================
+// WORLD BANK DATA FUNCTIONS
+// =============================================================================
+
+async function fetchWorldBankData(indicator, years = 15) {
     try {
-        const response = await fetch(`${API_ENDPOINTS.worldBank}${indicator}?format=json&per_page=5`);
+        const response = await fetch(
+            `${API_CONFIG.worldBank}${indicator}?format=json&per_page=${years}`
+        );
         const data = await response.json();
         
         if (data[1] && data[1].length > 0) {
-            // Filter out null values and return the most recent 2 data points
-            return data[1].filter(d => d.value !== null).slice(0, 2);
+            return data[1].filter(d => d.value !== null);
         }
-        return null;
+        return [];
     } catch (error) {
         console.error(`Error fetching ${indicator}:`, error);
-        return null;
+        return [];
     }
 }
 
-/**
- * Load and display all economic metrics
- */
 async function loadEconomicData() {
     const metricsGrid = document.getElementById('metricsGrid');
     metricsGrid.innerHTML = '';
 
-    for (const [indicator, label] of Object.entries(INDICATORS)) {
-        const data = await fetchWorldBankData(indicator);
+    for (const [indicator, info] of Object.entries(INDICATORS)) {
+        const data = await fetchWorldBankData(indicator, 15);
         
         if (data && data.length > 0) {
-            const latest = data[0];
-            const previous = data[1];
+            chartDataStore[indicator] = data.reverse();
             
-            let change = '';
-            let changeClass = 'neutral';
+            const latest = data[data.length - 1];
+            const previous = data[data.length - 2];
             
-            // Calculate percentage change if previous data exists
+            let change = 0;
+            let changeClass = 'positive';
+            
             if (previous && latest.value && previous.value) {
-                const percentChange = ((latest.value - previous.value) / previous.value * 100).toFixed(2);
+                change = ((latest.value - previous.value) / previous.value * 100);
                 
-                if (percentChange > 0) {
-                    change = `↑ ${percentChange}%`;
-                    // For inflation and unemployment, increase is negative
-                    changeClass = (label.includes('Inflation') || label.includes('Unemployment') || label.includes('Debt')) 
+                if (change > 0) {
+                    changeClass = (info.name.includes('Inflation') || info.name.includes('Unemployment')) 
                         ? 'negative' : 'positive';
-                } else if (percentChange < 0) {
-                    change = `↓ ${Math.abs(percentChange)}%`;
-                    // For inflation and unemployment, decrease is positive
-                    changeClass = (label.includes('Inflation') || label.includes('Unemployment') || label.includes('Debt')) 
+                } else if (change < 0) {
+                    changeClass = (info.name.includes('Inflation') || info.name.includes('Unemployment')) 
                         ? 'positive' : 'negative';
-                } else {
-                    change = 'No change';
                 }
             }
 
-            // Format the display value
-            let displayValue = latest.value.toLocaleString();
-            if (label.includes('GDP') && !label.includes('per Capita')) {
-                // Convert to billions for GDP
-                displayValue = '$' + (latest.value / 1e9).toFixed(2) + 'B';
-            } else if (label.includes('per Capita')) {
-                displayValue = '$' + latest.value.toLocaleString(undefined, {maximumFractionDigits: 0});
-            } else if (label.includes('Rate') || label.includes('%')) {
-                displayValue = latest.value.toFixed(2) + '%';
-            }
-
-            // Create metric card
             const card = document.createElement('div');
             card.className = 'metric-card';
+            card.dataset.indicator = indicator;
+            card.style.color = info.color;
+            if (indicator === selectedIndicator) {
+                card.classList.add('active');
+            }
+            
             card.innerHTML = `
-                <div class="metric-label">${label}</div>
-                <div class="metric-value">${displayValue}</div>
-                <div class="metric-change ${changeClass}">
-                    ${change || 'Data from ' + latest.date}
+                <div class="metric-header">
+                    <div class="metric-icon ${info.gradient}">
+                        ${info.icon}
+                    </div>
+                    <div class="metric-change ${changeClass}">
+                        ${change > 0 ? '↑' : '↓'} ${Math.abs(change).toFixed(1)}%
+                    </div>
                 </div>
-                <div style="margin-top: 10px; font-size: 0.8em; color: #999;">
-                    Year: ${latest.date}
-                </div>
+                <div class="metric-label">${info.name}</div>
+                <div class="metric-value" style="color: ${info.color}">${info.format(latest.value)}</div>
+                <div class="metric-year">Year: ${latest.date}</div>
             `;
+            
+            card.addEventListener('click', () => {
+                selectedIndicator = indicator;
+                updateSelectedMetric();
+                updateMainChart(indicator);
+            });
+            
             metricsGrid.appendChild(card);
         }
     }
 
-    // Update timestamp
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    
+    if (!mainChart) {
+        initializeCharts();
+    }
+    updateMainChart(selectedIndicator);
+    updateComparisonChart();
 }
 
-/**
- * Load news articles from free APIs
- */
-async function loadNews() {
-    const newsGrid = document.getElementById('newsGrid');
+// =============================================================================
+// NEWS FETCHING FUNCTIONS
+// =============================================================================
+
+async function fetchGNews() {
+    if (!API_CONFIG.gnews.enabled || API_CONFIG.gnews.apiKey === 'YOUR_GNEWS_API_KEY_HERE') {
+        return null;
+    }
     
     try {
-        // Try GNews API first (replace YOUR_GNEWS_API_KEY with actual key)
-        // For now, we'll use placeholder news
-        displayPlaceholderNews(newsGrid);
-        
-        // Uncomment below when you have API keys:
-        /*
-        const response = await fetch(API_ENDPOINTS.gnews);
+        const url = `${API_CONFIG.gnews.url}?q=Nigeria+economy&lang=en&country=ng&max=10&apikey=${API_CONFIG.gnews.apiKey}`;
+        const response = await fetch(url);
         const data = await response.json();
         
-        if (data.articles && data.articles.length > 0) {
-            displayNews(data.articles, newsGrid);
-        } else {
-            displayPlaceholderNews(newsGrid);
+        if (data.articles) {
+            return data.articles.map(article => ({
+                title: article.title,
+                description: article.description,
+                url: article.url,
+                source: article.source.name,
+                publishedAt: article.publishedAt,
+                image: article.image
+            }));
         }
-        */
-        
     } catch (error) {
-        console.error('Error loading news:', error);
-        displayPlaceholderNews(newsGrid);
+        console.error('GNews fetch error:', error);
     }
+    return null;
 }
 
-/**
- * Display news articles in the grid
- */
+async function fetchNewsAPI() {
+    if (!API_CONFIG.newsapi.enabled || API_CONFIG.newsapi.apiKey === 'YOUR_NEWSAPI_KEY_HERE') {
+        return null;
+    }
+    
+    try {
+        const url = `${API_CONFIG.newsapi.url}?q=Nigeria+economy&sortBy=publishedAt&language=en&pageSize=10&apiKey=${API_CONFIG.newsapi.apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.articles) {
+            return data.articles.map(article => ({
+                title: article.title,
+                description: article.description,
+                url: article.url,
+                source: article.source.name,
+                publishedAt: article.publishedAt,
+                image: article.urlToImage
+            }));
+        }
+    } catch (error) {
+        console.error('NewsAPI fetch error:', error);
+    }
+    return null;
+}
+
+async function fetchMediaStack() {
+    if (!API_CONFIG.mediastack.enabled || API_CONFIG.mediastack.apiKey === 'YOUR_MEDIASTACK_KEY_HERE') {
+        return null;
+    }
+    
+    try {
+        const url = `${API_CONFIG.mediastack.url}?access_key=${API_CONFIG.mediastack.apiKey}&countries=ng&keywords=economy&limit=10`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.data) {
+            return data.data.map(article => ({
+                title: article.title,
+                description: article.description,
+                url: article.url,
+                source: article.source,
+                publishedAt: article.published_at,
+                image: article.image
+            }));
+        }
+    } catch (error) {
+        console.error('MediaStack fetch error:', error);
+    }
+    return null;
+}
+
+// Fallback news when no API is configured
+const FALLBACK_NEWS = [
+    {
+        title: "Nigeria's Tech Sector Attracts Record Foreign Investment",
+        description: "Technology and fintech sectors continue to drive economic diversification, with venture capital funding reaching new heights in the digital economy space.",
+        source: "Business Day",
+        time: "2 hours ago",
+        category: "Technology"
+    },
+    {
+        title: "Central Bank Announces New Monetary Policy Framework",
+        description: "The Central Bank of Nigeria unveils comprehensive measures to enhance price stability and support sustainable economic growth across key sectors.",
+        source: "The Guardian Nigeria",
+        time: "5 hours ago",
+        category: "Finance"
+    },
+    {
+        title: "Agricultural Exports Show Strong Growth in Q4",
+        description: "Non-oil exports, particularly in agriculture and agro-processing, demonstrate robust performance contributing to improved trade balance.",
+        source: "Premium Times",
+        time: "1 day ago",
+        category: "Trade"
+    },
+    {
+        title: "Infrastructure Investment Plan Gains Federal Approval",
+        description: "Government approves major infrastructure initiatives aimed at improving transportation networks and energy distribution across economic zones.",
+        source: "Nairametrics",
+        time: "1 day ago",
+        category: "Infrastructure"
+    },
+    {
+        title: "SME Sector Reports Increased Access to Credit Facilities",
+        description: "Small and medium enterprises benefit from expanded lending programs, supporting job creation and economic diversification efforts.",
+        source: "This Day Live",
+        time: "2 days ago",
+        category: "Business"
+    },
+    {
+        title: "Digital Banking Services Expand to Rural Communities",
+        description: "Mobile banking and digital payment platforms reach underserved areas, promoting financial inclusion and supporting rural economic development.",
+        source: "Vanguard",
+        time: "2 days ago",
+        category: "Banking"
+    }
+];
+
+function getTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
+    return Math.floor(seconds / 604800) + ' weeks ago';
+}
+
+async function loadNews() {
+    const newsGrid = document.getElementById('newsGrid');
+    newsGrid.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Fetching latest news...</p></div>';
+    
+    // Try to fetch from APIs
+    let articles = await fetchGNews();
+    if (!articles) articles = await fetchNewsAPI();
+    if (!articles) articles = await fetchMediaStack();
+    
+    // Use fallback if no API configured
+    if (!articles) {
+        displayFallbackNews(newsGrid);
+        return;
+    }
+    
+    // Display fetched articles
+    displayNews(articles, newsGrid);
+}
+
 function displayNews(articles, container) {
     container.innerHTML = '';
     
-    articles.slice(0, 8).forEach(article => {
+    articles.slice(0, 6).forEach(article => {
         const newsItem = document.createElement('div');
         newsItem.className = 'news-item';
         
-        const publishedDate = new Date(article.publishedAt);
-        const timeAgo = getTimeAgo(publishedDate);
+        const timeAgo = article.publishedAt ? getTimeAgo(article.publishedAt) : article.time || 'Recently';
         
         newsItem.innerHTML = `
+            <div class="news-source">${article.source}</div>
             <div class="news-title">${article.title}</div>
-            <div class="news-meta">
-                ${article.source.name} • ${timeAgo}
-            </div>
-            <div class="news-description">
-                ${article.description || 'Click to read more...'}
-            </div>
+            <div class="news-meta">${timeAgo}</div>
+            <div class="news-description">${article.description || 'Click to read more...'}</div>
             <a href="${article.url}" target="_blank" class="news-link">Read full article →</a>
         `;
         
@@ -160,153 +364,260 @@ function displayNews(articles, container) {
     });
 }
 
-/**
- * Display placeholder news when API is not available
- */
-function displayPlaceholderNews(container) {
-    container.innerHTML = `
-        <div class="news-item">
-            <div class="news-title">Nigeria's Economy Shows Resilience Amid Global Challenges</div>
-            <div class="news-meta">Business Day • 2 hours ago</div>
-            <div class="news-description">
-                Recent economic indicators suggest Nigeria's economy is maintaining stability despite global headwinds, 
-                with diversification efforts showing promising results in the non-oil sector.
-            </div>
-            <a href="#" class="news-link">Read full article →</a>
-        </div>
+function displayFallbackNews(container) {
+    container.innerHTML = '';
+    
+    FALLBACK_NEWS.forEach(article => {
+        const newsItem = document.createElement('div');
+        newsItem.className = 'news-item';
         
-        <div class="news-item">
-            <div class="news-title">Central Bank Maintains Monetary Policy Stance</div>
-            <div class="news-meta">The Guardian Nigeria • 5 hours ago</div>
-            <div class="news-description">
-                The Central Bank of Nigeria held interest rates steady as inflation concerns persist, 
-                balancing growth objectives with price stability.
-            </div>
-            <a href="#" class="news-link">Read full article →</a>
-        </div>
+        newsItem.innerHTML = `
+            <div class="news-source">${article.source}</div>
+            <div class="news-title">${article.title}</div>
+            <div class="news-meta">${article.time} • ${article.category}</div>
+            <div class="news-description">${article.description}</div>
+        `;
         
-        <div class="news-item">
-            <div class="news-title">Tech Sector Drives Economic Growth</div>
-            <div class="news-meta">Nairametrics • 1 day ago</div>
-            <div class="news-description">
-                Nigeria's technology and fintech sectors continue to attract significant investment, 
-                contributing to economic diversification and job creation across major cities.
-            </div>
-            <a href="#" class="news-link">Read full article →</a>
-        </div>
-        
-        <div class="news-item">
-            <div class="news-title">Agricultural Output Increases in Q4</div>
-            <div class="news-meta">Premium Times • 1 day ago</div>
-            <div class="news-description">
-                Agricultural production shows positive growth trajectory, supporting food security initiatives 
-                and rural economic development programs.
-            </div>
-            <a href="#" class="news-link">Read full article →</a>
-        </div>
-        
-        <div class="news-item">
-            <div class="news-title">Foreign Investment in Infrastructure Projects Rises</div>
-            <div class="news-meta">This Day Live • 2 days ago</div>
-            <div class="news-description">
-                New infrastructure investments signal growing international confidence in Nigeria's economic prospects, 
-                particularly in transportation and energy sectors.
-            </div>
-            <a href="#" class="news-link">Read full article →</a>
-        </div>
-        
-        <div style="padding: 20px; text-align: center; color: #666; font-size: 0.9em;">
-            💡 To get live news updates, add your free API key from 
-            <a href="https://gnews.io" target="_blank" style="color: #667eea;">GNews.io</a> or 
-            <a href="https://newsapi.org" target="_blank" style="color: #667eea;">NewsAPI.org</a> 
-            in the app.js file
-        </div>
+        container.appendChild(newsItem);
+    });
+    
+    // Add API info banner
+    const apiInfo = document.createElement('div');
+    apiInfo.className = 'api-info';
+    apiInfo.innerHTML = `
+        <strong>💡 Get Live News Updates!</strong>
+        <p>Add your free API key to get real-time news from:</p>
+        <p>
+            <a href="https://gnews.io" target="_blank">GNews.io</a> • 
+            <a href="https://newsapi.org" target="_blank">NewsAPI.org</a> • 
+            <a href="https://mediastack.com" target="_blank">MediaStack.com</a>
+        </p>
+        <p style="margin-top: 8px; font-size: 0.875rem;">Edit the API_CONFIG section in app.js to add your keys</p>
     `;
+    container.appendChild(apiInfo);
 }
 
-/**
- * Calculate time ago from date
- */
-function getTimeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    const intervals = {
-        year: 31536000,
-        month: 2592000,
-        week: 604800,
-        day: 86400,
-        hour: 3600,
-        minute: 60
-    };
-    
-    for (const [name, secondsInInterval] of Object.entries(intervals)) {
-        const interval = Math.floor(seconds / secondsInInterval);
-        if (interval >= 1) {
-            return interval === 1 ? `1 ${name} ago` : `${interval} ${name}s ago`;
+// =============================================================================
+// CHART FUNCTIONS
+// =============================================================================
+
+function updateSelectedMetric() {
+    document.querySelectorAll('.metric-card').forEach(card => {
+        card.classList.remove('active');
+        if (card.dataset.indicator === selectedIndicator) {
+            card.classList.add('active');
         }
-    }
+    });
     
-    return 'Just now';
+    const info = INDICATORS[selectedIndicator];
+    document.getElementById('selectedMetric').textContent = info.name;
 }
 
-/**
- * Generate economic outlook based on available data
- */
-function generateOutlook() {
-    const outlook = document.getElementById('outlook');
+function initializeCharts() {
+    const mainCtx = document.getElementById('mainChart').getContext('2d');
+    const compCtx = document.getElementById('comparisonChart').getContext('2d');
     
-    outlook.innerHTML = `
-        <h3>📈 Current Economic Assessment</h3>
-        <div class="outlook-text">
-            <p><strong>Growth Prospects:</strong> Nigeria's economy continues to demonstrate resilience 
-            with diversification efforts gaining significant traction. The non-oil sector, particularly 
-            technology, agriculture, telecommunications, and services, is contributing substantially to GDP growth 
-            and reducing dependency on oil revenues.</p>
-            
-            <p style="margin-top: 15px;"><strong>Key Challenges:</strong> Inflation management remains 
-            a priority requiring careful monetary policy coordination. Currency stability and exchange rate 
-            management continue to be central to economic planning, alongside addressing infrastructure gaps 
-            and improving the business environment.</p>
-            
-            <p style="margin-top: 15px;"><strong>Positive Indicators:</strong> Increased foreign direct 
-            investment in technology and infrastructure sectors, a thriving fintech ecosystem, growing youth 
-            entrepreneurship, and improved agricultural productivity signal positive medium to long-term 
-            economic prospects. The digital economy continues to expand rapidly.</p>
-            
-            <p style="margin-top: 15px;"><strong>Sector Highlights:</strong> The technology sector, 
-            particularly fintech and e-commerce, continues to attract substantial investment. Agricultural 
-            reforms are improving food security and rural incomes. The entertainment and creative industries 
-            are gaining international recognition and generating significant export revenue.</p>
-            
-            <p style="margin-top: 15px;"><strong>Forward Outlook:</strong> With continued policy reforms, 
-            investment in critical infrastructure, human capital development, and strategic positioning in 
-            regional markets, Nigeria is positioned for sustainable economic growth. However, maintaining 
-            vigilance on inflation control, fiscal discipline, and security challenges remains essential 
-            for realizing this potential.</p>
-        </div>
-    `;
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    Chart.defaults.font.size = 13;
+    Chart.defaults.font.weight = '600';
+    
+    mainChart = new Chart(mainCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true, 
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15,
+                        font: { size: 14, weight: '700' }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1F2937',
+                    bodyColor: '#4B5563',
+                    borderColor: '#E5E7EB',
+                    borderWidth: 2,
+                    padding: 12,
+                    boxPadding: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            const info = INDICATORS[selectedIndicator];
+                            return ' ' + info.name + ': ' + info.format(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { 
+                        color: '#F3F4F6',
+                        lineWidth: 1.5
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            const info = INDICATORS[selectedIndicator];
+                            if (info.unit === 'billions') {
+                                return '$' + (value / 1e9).toFixed(1) + 'B';
+                            } else if (info.unit === 'percent') {
+                                return value.toFixed(1) + '%';
+                            }
+                            return value.toLocaleString();
+                        },
+                        font: { size: 12, weight: '600' },
+                        color: '#6B7280'
+                    }
+                },
+                x: {
+                    grid: { 
+                        color: '#F3F4F6',
+                        lineWidth: 1.5
+                    },
+                    ticks: {
+                        font: { size: 12, weight: '600' },
+                        color: '#6B7280'
+                    }
+                }
+            }
+        }
+    });
+    
+    comparisonChart = new Chart(compCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true, 
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15,
+                        font: { size: 14, weight: '700' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1F2937',
+                    bodyColor: '#4B5563',
+                    borderColor: '#E5E7EB',
+                    borderWidth: 2,
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return ' GDP: $' + context.parsed.y.toFixed(2) + 'B';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: '#F3F4F6', lineWidth: 1.5 },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(0) + 'B';
+                        },
+                        font: { size: 12, weight: '600' },
+                        color: '#6B7280'
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 12, weight: '600' },
+                        color: '#6B7280'
+                    }
+                }
+            }
+        }
+    });
 }
 
-/**
- * Initialize the dashboard
- */
+function updateMainChart(indicator) {
+    const data = chartDataStore[indicator];
+    if (!data || !mainChart) return;
+    
+    const info = INDICATORS[indicator];
+    const labels = data.map(d => d.date);
+    const values = data.map(d => d.value);
+    
+    mainChart.data.labels = labels;
+    mainChart.data.datasets = [{
+        label: info.name,
+        data: values,
+        borderColor: info.color,
+        backgroundColor: info.color + '40',
+        borderWidth: 4,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointBackgroundColor: info.color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 3
+    }];
+    
+    mainChart.update();
+}
+
+function updateComparisonChart() {
+    if (!comparisonChart) return;
+    
+    const gdpData = chartDataStore['NY.GDP.MKTP.CD'];
+    if (!gdpData || gdpData.length < 5) return;
+    
+    const last5Years = gdpData.slice(-5);
+    const labels = last5Years.map(d => d.date);
+    const values = last5Years.map(d => d.value / 1e9);
+    
+    comparisonChart.data.labels = labels;
+    comparisonChart.data.datasets = [{
+        label: 'GDP (Billions USD)',
+        data: values,
+        backgroundColor: 'rgba(167, 139, 250, 0.8)',
+        borderColor: '#A78BFA',
+        borderWidth: 2,
+        borderRadius: 12,
+        borderSkipped: false
+    }];
+    
+    comparisonChart.update();
+}
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
 async function initializeDashboard() {
-    console.log('Initializing Nigeria Economic Dashboard...');
+    console.log('🚀 Initializing Nigeria Economic Dashboard...');
     
-    // Load initial data
+    // Load economic data
     await loadEconomicData();
-    await loadNews();
-    generateOutlook();
     
-    // Set up auto-refresh every 5 minutes (300000 milliseconds)
+    // Load news
+    await loadNews();
+    
+    // Set up auto-refresh every 5 minutes
     setInterval(async () => {
-        console.log('Refreshing data...');
+        console.log('🔄 Refreshing data...');
         await loadEconomicData();
         await loadNews();
     }, 300000);
     
-    console.log('Dashboard initialized successfully!');
+    console.log('✅ Dashboard initialized successfully!');
 }
 
-// Start the application when DOM is fully loaded
+// Start the application when DOM is ready
 document.addEventListener('DOMContentLoaded', initializeDashboard);
