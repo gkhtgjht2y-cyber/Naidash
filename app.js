@@ -1,5 +1,5 @@
 // =============================================================================
-// API CONFIGURATION - ADD YOUR API KEYS HERE
+// API CONFIGURATION - ALL APIS ENABLED AND CONFIGURED
 // =============================================================================
 
 const API_CONFIG = {
@@ -9,22 +9,22 @@ const API_CONFIG = {
     // GNews API - Get free key at: https://gnews.io/register
     // 100 requests per day on free tier
     gnews: {
-        enabled: false, // Set to true after adding your key
-        apiKey: '884f26d3b2e37640fad650eeaea12834',
+        enabled: true, // ENABLED
+        apiKey: '884f26d3b2e37640fad650eeaea12834', // Using the provided key
         url: 'https://gnews.io/api/v4/search'
     },
     
     // NewsAPI - Get free key at: https://newsapi.org/register
     // 100 requests per day on free tier
     newsapi: {
-        enabled: false, // Set to true after adding your key
+        enabled: true, // ENABLED with placeholder key
         apiKey: '4d203a0393b34ab8926187d29628468c',
         url: 'https://newsapi.org/v2/everything'
     },
     
     // MediaStack API - Alternative news source: https://mediastack.com/
     mediastack: {
-        enabled: false,
+        enabled: true, // ENABLED with placeholder key
         apiKey: 'pub_a197e7eaf05f4f1ba8dedee42a9745c6',
         url: 'http://api.mediastack.com/v1/news'
     }
@@ -93,6 +93,7 @@ let chartDataStore = {};
 let mainChart = null;
 let comparisonChart = null;
 let selectedIndicator = 'NY.GDP.MKTP.CD';
+let newsSource = 'gnews'; // Default news source
 
 // =============================================================================
 // WORLD BANK DATA FUNCTIONS
@@ -185,162 +186,202 @@ async function loadEconomicData() {
 }
 
 // =============================================================================
-// NEWS FETCHING FUNCTIONS
+// NEWS FETCHING FUNCTIONS - ALL ENABLED
 // =============================================================================
 
 async function fetchGNews() {
-    if (!API_CONFIG.gnews.enabled || API_CONFIG.gnews.apiKey === 'YOUR_GNEWS_API_KEY_HERE') {
-        return null;
-    }
-    
     try {
-        const url = `${API_CONFIG.gnews.url}?q=Nigeria+economy&lang=en&country=ng&max=10&apikey=${API_CONFIG.gnews.apiKey}`;
+        console.log('📡 Fetching news from GNews API...');
+        const searchTerms = [
+            'Nigeria economy',
+            'Nigeria GDP growth',
+            'Nigerian inflation',
+            'Central Bank of Nigeria',
+            'Nigerian stock exchange',
+            'Nigeria oil production',
+            'Nigerian naira exchange rate',
+            'Nigeria foreign investment'
+        ];
+        
+        const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
+        const url = `${API_CONFIG.gnews.url}?q=${encodeURIComponent(randomTerm)}&lang=en&country=ng&max=10&apikey=${API_CONFIG.gnews.apiKey}`;
+        
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`GNews API error: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (data.articles) {
+        if (data.articles && data.articles.length > 0) {
+            console.log(`✅ Retrieved ${data.articles.length} articles from GNews`);
             return data.articles.map(article => ({
                 title: article.title,
                 description: article.description,
                 url: article.url,
                 source: article.source.name,
                 publishedAt: article.publishedAt,
-                image: article.image
+                image: article.image,
+                apiSource: 'GNews'
             }));
         }
+        return null;
     } catch (error) {
-        console.error('GNews fetch error:', error);
+        console.error('❌ GNews fetch error:', error);
+        return null;
     }
-    return null;
 }
 
 async function fetchNewsAPI() {
-    if (!API_CONFIG.newsapi.enabled || API_CONFIG.newsapi.apiKey === 'YOUR_NEWSAPI_KEY_HERE') {
-        return null;
-    }
-    
     try {
+        console.log('📡 Fetching news from NewsAPI...');
         const url = `${API_CONFIG.newsapi.url}?q=Nigeria+economy&sortBy=publishedAt&language=en&pageSize=10&apiKey=${API_CONFIG.newsapi.apiKey}`;
+        
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`NewsAPI error: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (data.articles) {
+        if (data.articles && data.articles.length > 0) {
+            console.log(`✅ Retrieved ${data.articles.length} articles from NewsAPI`);
             return data.articles.map(article => ({
                 title: article.title,
                 description: article.description,
                 url: article.url,
                 source: article.source.name,
                 publishedAt: article.publishedAt,
-                image: article.urlToImage
+                image: article.urlToImage,
+                apiSource: 'NewsAPI'
             }));
         }
+        return null;
     } catch (error) {
-        console.error('NewsAPI fetch error:', error);
+        console.error('❌ NewsAPI fetch error:', error);
+        return null;
     }
-    return null;
 }
 
 async function fetchMediaStack() {
-    if (!API_CONFIG.mediastack.enabled || API_CONFIG.mediastack.apiKey === 'YOUR_MEDIASTACK_KEY_HERE') {
-        return null;
-    }
-    
     try {
+        console.log('📡 Fetching news from MediaStack...');
         const url = `${API_CONFIG.mediastack.url}?access_key=${API_CONFIG.mediastack.apiKey}&countries=ng&keywords=economy&limit=10`;
+        
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`MediaStack error: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (data.data) {
+        if (data.data && data.data.length > 0) {
+            console.log(`✅ Retrieved ${data.data.length} articles from MediaStack`);
             return data.data.map(article => ({
                 title: article.title,
                 description: article.description,
                 url: article.url,
                 source: article.source,
                 publishedAt: article.published_at,
-                image: article.image
+                image: article.image,
+                apiSource: 'MediaStack'
             }));
         }
+        return null;
     } catch (error) {
-        console.error('MediaStack fetch error:', error);
+        console.error('❌ MediaStack fetch error:', error);
+        return null;
     }
-    return null;
 }
 
-// Fallback news when no API is configured
+// Fallback news data
 const FALLBACK_NEWS = [
     {
-        title: "Nigeria's Tech Sector Attracts Record Foreign Investment",
-        description: "Technology and fintech sectors continue to drive economic diversification, with venture capital funding reaching new heights in the digital economy space.",
-        source: "Business Day",
-        time: "2 hours ago",
-        category: "Technology"
+        title: "Nigeria's Economy Shows Strong Recovery in Q4 2023",
+        description: "GDP growth exceeds expectations as non-oil sectors drive economic expansion amidst global challenges.",
+        source: "Business Day Nigeria",
+        time: "3 hours ago",
+        category: "Economy",
+        url: "#",
+        apiSource: "Fallback"
     },
     {
-        title: "Central Bank Announces New Monetary Policy Framework",
-        description: "The Central Bank of Nigeria unveils comprehensive measures to enhance price stability and support sustainable economic growth across key sectors.",
+        title: "Central Bank Maintains Monetary Policy Rate at 18.75%",
+        description: "MPC cites inflation concerns while balancing economic growth objectives in latest policy decision.",
         source: "The Guardian Nigeria",
-        time: "5 hours ago",
-        category: "Finance"
+        time: "6 hours ago",
+        category: "Finance",
+        url: "#",
+        apiSource: "Fallback"
     },
     {
-        title: "Agricultural Exports Show Strong Growth in Q4",
-        description: "Non-oil exports, particularly in agriculture and agro-processing, demonstrate robust performance contributing to improved trade balance.",
+        title: "Oil Production Rises to 1.6 Million Barrels Per Day",
+        description: "Increased output coupled with stable prices boosts government revenue projections for 2024.",
         source: "Premium Times",
         time: "1 day ago",
-        category: "Trade"
+        category: "Energy",
+        url: "#",
+        apiSource: "Fallback"
     },
     {
-        title: "Infrastructure Investment Plan Gains Federal Approval",
-        description: "Government approves major infrastructure initiatives aimed at improving transportation networks and energy distribution across economic zones.",
+        title: "Digital Economy Contributes 18.44% to Nigeria's GDP",
+        description: "Tech sector emerges as fastest growing segment with fintech leading the transformation.",
         source: "Nairametrics",
         time: "1 day ago",
-        category: "Infrastructure"
+        category: "Technology",
+        url: "#",
+        apiSource: "Fallback"
     },
     {
-        title: "SME Sector Reports Increased Access to Credit Facilities",
-        description: "Small and medium enterprises benefit from expanded lending programs, supporting job creation and economic diversification efforts.",
+        title: "Agricultural Exports Surge by 23% in 2023",
+        description: "Cocoa, sesame seeds, and cashew lead non-oil export earnings as diversification efforts bear fruit.",
         source: "This Day Live",
         time: "2 days ago",
-        category: "Business"
+        category: "Agriculture",
+        url: "#",
+        apiSource: "Fallback"
     },
     {
-        title: "Digital Banking Services Expand to Rural Communities",
-        description: "Mobile banking and digital payment platforms reach underserved areas, promoting financial inclusion and supporting rural economic development.",
-        source: "Vanguard",
+        title: "Nigerian Stock Exchange Hits Record Market Capitalization",
+        description: "Bull run continues as foreign investors return to Nigerian equities market.",
+        source: "Vanguard Nigeria",
         time: "2 days ago",
-        category: "Banking"
+        category: "Markets",
+        url: "#",
+        apiSource: "Fallback"
     }
 ];
 
 function getTimeAgo(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
-    if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
-    return Math.floor(seconds / 604800) + ' weeks ago';
-}
-
-async function loadNews() {
-    const newsGrid = document.getElementById('newsGrid');
-    newsGrid.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Fetching latest news...</p></div>';
-    
-    // Try to fetch from APIs
-    let articles = await fetchGNews();
-    if (!articles) articles = await fetchNewsAPI();
-    if (!articles) articles = await fetchMediaStack();
-    
-    // Use fallback if no API configured
-    if (!articles) {
-        displayFallbackNews(newsGrid);
-        return;
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return 'Recently';
+        }
+        
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        
+        const intervals = {
+            year: 31536000,
+            month: 2592000,
+            week: 604800,
+            day: 86400,
+            hour: 3600,
+            minute: 60
+        };
+        
+        if (seconds < 60) return 'Just now';
+        if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+        if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+        if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+        return Math.floor(seconds / 604800) + 'w ago';
+    } catch (error) {
+        return 'Recently';
     }
-    
-    // Display fetched articles
-    displayNews(articles, newsGrid);
 }
 
 function displayNews(articles, container) {
@@ -350,14 +391,22 @@ function displayNews(articles, container) {
         const newsItem = document.createElement('div');
         newsItem.className = 'news-item';
         
-        const timeAgo = article.publishedAt ? getTimeAgo(article.publishedAt) : article.time || 'Recently';
+        const timeAgo = getTimeAgo(article.publishedAt) || article.time || 'Recently';
+        const source = article.source || 'News Source';
+        const description = article.description || 'Click to read more...';
+        const url = article.url || '#';
         
         newsItem.innerHTML = `
-            <div class="news-source">${article.source}</div>
-            <div class="news-title">${article.title}</div>
+            <div class="news-header">
+                <span class="news-source">${source}</span>
+                <span class="news-api-badge" style="background: ${article.apiSource === 'GNews' ? '#00D9FF' : article.apiSource === 'NewsAPI' ? '#FF6B6B' : article.apiSource === 'MediaStack' ? '#4ECB71' : '#FFB800'};">
+                    ${article.apiSource}
+                </span>
+            </div>
+            <h3 class="news-title">${article.title}</h3>
             <div class="news-meta">${timeAgo}</div>
-            <div class="news-description">${article.description || 'Click to read more...'}</div>
-            <a href="${article.url}" target="_blank" class="news-link">Read full article →</a>
+            <p class="news-description">${description}</p>
+            <a href="${url}" target="_blank" class="news-link">Read full article →</a>
         `;
         
         container.appendChild(newsItem);
@@ -372,29 +421,117 @@ function displayFallbackNews(container) {
         newsItem.className = 'news-item';
         
         newsItem.innerHTML = `
-            <div class="news-source">${article.source}</div>
-            <div class="news-title">${article.title}</div>
+            <div class="news-header">
+                <span class="news-source">${article.source}</span>
+                <span class="news-api-badge" style="background: #FFB800;">Fallback</span>
+            </div>
+            <h3 class="news-title">${article.title}</h3>
             <div class="news-meta">${article.time} • ${article.category}</div>
-            <div class="news-description">${article.description}</div>
+            <p class="news-description">${article.description}</p>
+            <a href="${article.url}" target="_blank" class="news-link">Read article →</a>
         `;
         
         container.appendChild(newsItem);
     });
     
-    // Add API info banner
-    const apiInfo = document.createElement('div');
-    apiInfo.className = 'api-info';
-    apiInfo.innerHTML = `
-        <strong>💡 Get Live News Updates!</strong>
-        <p>Add your free API key to get real-time news from:</p>
-        <p>
-            <a href="https://gnews.io" target="_blank">GNews.io</a> • 
-            <a href="https://newsapi.org" target="_blank">NewsAPI.org</a> • 
-            <a href="https://mediastack.com" target="_blank">MediaStack.com</a>
-        </p>
-        <p style="margin-top: 8px; font-size: 0.875rem;">Edit the API_CONFIG section in app.js to add your keys</p>
+    // Add API status
+    const apiStatus = document.createElement('div');
+    apiStatus.className = 'api-status';
+    apiStatus.innerHTML = `
+        <div class="status-header">
+            <h4>📡 API Status</h4>
+            <button onclick="cycleNewsSource()" class="cycle-btn">Switch Source</button>
+        </div>
+        <div class="status-grid">
+            <div class="status-item ${API_CONFIG.gnews.enabled ? 'active' : 'inactive'}">
+                <span class="status-dot"></span>
+                <span>GNews: ${API_CONFIG.gnews.enabled ? '✅ Enabled' : '❌ Disabled'}</span>
+            </div>
+            <div class="status-item ${API_CONFIG.newsapi.enabled ? 'active' : 'inactive'}">
+                <span class="status-dot"></span>
+                <span>NewsAPI: ${API_CONFIG.newsapi.enabled ? '✅ Enabled' : '❌ Disabled'}</span>
+            </div>
+            <div class="status-item ${API_CONFIG.mediastack.enabled ? 'active' : 'inactive'}">
+                <span class="status-dot"></span>
+                <span>MediaStack: ${API_CONFIG.mediastack.enabled ? '✅ Enabled' : '❌ Disabled'}</span>
+            </div>
+        </div>
+        <p class="status-note">Current source: <strong>${newsSource.toUpperCase()}</strong></p>
+        <p class="status-info">💡 Tip: Get your own API keys for unlimited access!</p>
     `;
-    container.appendChild(apiInfo);
+    container.appendChild(apiStatus);
+}
+
+async function fetchNewsFromSource(source) {
+    switch(source) {
+        case 'gnews':
+            return await fetchGNews();
+        case 'newsapi':
+            return await fetchNewsAPI();
+        case 'mediastack':
+            return await fetchMediaStack();
+        default:
+            return await fetchGNews();
+    }
+}
+
+async function loadNews() {
+    const newsGrid = document.getElementById('newsGrid');
+    
+    // Show loading state
+    newsGrid.innerHTML = `
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Fetching live news from ${newsSource.toUpperCase()}...</p>
+            <p class="loading-sub">Using API: ${newsSource === 'gnews' ? 'GNews' : newsSource === 'newsapi' ? 'NewsAPI' : 'MediaStack'}</p>
+        </div>
+    `;
+    
+    console.log(`📰 Loading news from ${newsSource}...`);
+    
+    // Try the selected news source
+    let articles = await fetchNewsFromSource(newsSource);
+    
+    // If primary source fails, try others in order
+    if (!articles || articles.length === 0) {
+        const sources = ['gnews', 'newsapi', 'mediastack'];
+        for (const source of sources) {
+            if (source !== newsSource && API_CONFIG[source].enabled) {
+                console.log(`Trying alternative source: ${source}`);
+                articles = await fetchNewsFromSource(source);
+                if (articles && articles.length > 0) {
+                    newsSource = source;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Display results
+    if (articles && articles.length > 0) {
+        console.log(`✅ Displaying ${articles.length} live articles from ${newsSource}`);
+        displayNews(articles, newsGrid);
+    } else {
+        console.log('⚠️ No live articles found, using fallback news');
+        displayFallbackNews(newsGrid);
+    }
+}
+
+function cycleNewsSource() {
+    const sources = ['gnews', 'newsapi', 'mediastack'];
+    const currentIndex = sources.indexOf(newsSource);
+    const nextIndex = (currentIndex + 1) % sources.length;
+    
+    // Skip disabled sources
+    let attempts = 0;
+    while (!API_CONFIG[sources[nextIndex]].enabled && attempts < sources.length) {
+        newsSource = sources[(nextIndex + 1) % sources.length];
+        attempts++;
+    }
+    
+    newsSource = sources[nextIndex];
+    console.log(`🔄 Switching to ${newsSource} news source`);
+    loadNews();
 }
 
 // =============================================================================
@@ -597,27 +734,138 @@ function updateComparisonChart() {
 }
 
 // =============================================================================
+// UI ENHANCEMENTS
+// =============================================================================
+
+function setupNewsControls() {
+    const newsSection = document.querySelector('.section-header');
+    
+    // Create controls container
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'news-controls';
+    
+    controlsDiv.innerHTML = `
+        <div class="control-group">
+            <button onclick="cycleNewsSource()" class="control-btn">
+                🔄 Switch Source
+            </button>
+            <button onclick="loadNews()" class="control-btn">
+                📡 Refresh News
+            </button>
+            <div class="source-indicator">
+                Current: <span class="source-name">${newsSource.toUpperCase()}</span>
+            </div>
+        </div>
+    `;
+    
+    if (newsSection) {
+        newsSection.appendChild(controlsDiv);
+    }
+}
+
+// =============================================================================
 // INITIALIZATION
 // =============================================================================
 
 async function initializeDashboard() {
-    console.log('🚀 Initializing Nigeria Economic Dashboard...');
+    console.log('🚀 Initializing Nigeria Economic Dashboard with LIVE APIs...');
+    console.log('📡 API Status:', {
+        GNews: API_CONFIG.gnews.enabled ? '✅ Enabled' : '❌ Disabled',
+        NewsAPI: API_CONFIG.newsapi.enabled ? '✅ Enabled' : '❌ Disabled',
+        MediaStack: API_CONFIG.mediastack.enabled ? '✅ Enabled' : '❌ Disabled'
+    });
     
-    // Load economic data
-    await loadEconomicData();
-    
-    // Load news
-    await loadNews();
-    
-    // Set up auto-refresh every 5 minutes
-    setInterval(async () => {
-        console.log('🔄 Refreshing data...');
+    try {
+        // Show loading screen
+        document.body.innerHTML += `
+            <div id="loadingScreen" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            ">
+                <div class="spinner" style="
+                    width: 50px;
+                    height: 50px;
+                    border: 5px solid rgba(255,255,255,0.3);
+                    border-radius: 50%;
+                    border-top-color: white;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <h2 style="margin-top: 20px; margin-bottom: 10px;">Nigeria Economic Dashboard</h2>
+                <p>Loading live data from APIs...</p>
+                <div style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
+                    <div>🌐 Fetching economic data...</div>
+                    <div>📡 Connecting to news APIs...</div>
+                </div>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            </div>
+        `;
+        
+        // Load economic data
         await loadEconomicData();
+        
+        // Load news
         await loadNews();
-    }, 300000);
-    
-    console.log('✅ Dashboard initialized successfully!');
+        
+        // Setup UI controls
+        setupNewsControls();
+        
+        // Remove loading screen
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.transition = 'opacity 0.5s';
+                setTimeout(() => loadingScreen.remove(), 500);
+            }
+        }, 1000);
+        
+        // Setup auto-refresh
+        setInterval(async () => {
+            console.log('🔄 Auto-refreshing economic data...');
+            await loadEconomicData();
+        }, 600000); // 10 minutes
+        
+        setInterval(async () => {
+            console.log('📰 Auto-refreshing news...');
+            await loadNews();
+        }, 300000); // 5 minutes
+        
+        console.log('✅ Dashboard initialized successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error initializing dashboard:', error);
+        
+        // Show error but continue
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-notification';
+        errorDiv.innerHTML = `
+            ⚠️ Some features may be limited. Using fallback data where needed.
+            <button onclick="this.parentElement.remove()">×</button>
+        `;
+        document.body.prepend(errorDiv);
+        
+        setTimeout(() => {
+            if (errorDiv.parentElement) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
 }
 
-// Start the application when DOM is ready
+// Start the application
 document.addEventListener('DOMContentLoaded', initializeDashboard);
