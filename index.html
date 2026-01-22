@@ -8,50 +8,83 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🇳🇬 Nigeria Economic Dashboard</h1>
-            <p class="update-time">Last Updated: <span id="lastUpdate">Loading...</span></p>
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header-title">🇳🇬 Nigeria Economic Dashboard</h1>
+            <div class="header-update">
+                <svg class="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                <span>Last Updated: <span id="lastUpdate">Loading...</span></span>
+            </div>
         </header>
 
+        <!-- Metrics Grid -->
         <div class="metrics-grid" id="metricsGrid">
-            <div class="loading">Loading economic data...</div>
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>Loading economic data...</p>
+            </div>
         </div>
 
-        <!-- Historical Chart Section -->
-        <div class="section">
-            <h2>📊 Historical Trends - <span id="selectedMetric">GDP</span></h2>
+        <!-- Historical Chart -->
+        <section class="chart-section">
+            <div class="section-header">
+                <div class="section-icon gradient-purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/>
+                    </svg>
+                </div>
+                <h2>Historical Trend: <span id="selectedMetric" class="gradient-text">GDP</span></h2>
+            </div>
             <div class="chart-container">
                 <canvas id="mainChart"></canvas>
             </div>
-            <p class="chart-note">Click on any metric card above to view its historical trend</p>
-        </div>
+            <p class="chart-note">💡 Tap any metric card above to view its historical trend</p>
+        </section>
 
         <!-- Comparison Chart -->
-        <div class="section">
-            <h2>📈 Multi-Indicator Comparison (Last 10 Years)</h2>
+        <section class="chart-section">
+            <div class="section-header">
+                <div class="section-icon gradient-pink">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/>
+                    </svg>
+                </div>
+                <h2><span class="gradient-text-alt">5-Year GDP Overview</span></h2>
+            </div>
             <div class="chart-container">
                 <canvas id="comparisonChart"></canvas>
             </div>
-        </div>
+        </section>
 
-        <div class="section">
-            <h2>📈 Economic Outlook</h2>
-            <div id="outlook" class="outlook">
-                <div class="loading">Analyzing economic indicators...</div>
+        <!-- Economic Outlook -->
+        <section class="outlook-section">
+            <h2><span class="gradient-text">📈 Economic Outlook</span></h2>
+            <div class="outlook-content">
+                <h3>Current Assessment</h3>
+                <div class="outlook-grid">
+                    <div class="outlook-card">
+                        <strong>Growth Trajectory:</strong> Nigeria's economy shows sustained diversification with technology, agriculture, and services sectors gaining prominence. The GDP trend indicates resilience despite global economic headwinds.
+                    </div>
+                    <div class="outlook-card">
+                        <strong>Inflation Dynamics:</strong> Monetary policy remains focused on price stability while supporting growth. The Central Bank's interventions aim to balance inflation control with economic expansion needs.
+                    </div>
+                    <div class="outlook-card">
+                        <strong>Trade Balance:</strong> Efforts to boost non-oil exports are showing results, with the digital economy and agricultural products contributing to export diversification.
+                    </div>
+                    <div class="outlook-card">
+                        <strong>Outlook:</strong> With continued policy reforms, infrastructure investment, and digital transformation, Nigeria is positioned for sustainable medium-term growth across multiple sectors.
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="section">
-            <h2>📰 Latest Economic News</h2>
-            <div class="news-grid" id="newsGrid">
-                <div class="loading">Fetching latest news...</div>
-            </div>
-        </div>
-
-        <div class="data-source">
-            <p>Data Source: World Bank Open Data API | Charts powered by Chart.js</p>
-            <p>Updates automatically every 5 minutes</p>
-        </div>
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-main">📊 Data Source: World Bank Open Data API</p>
+            <p class="footer-sub">Updates automatically every 5 minutes • Charts show 10-15 years of data</p>
+        </footer>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
